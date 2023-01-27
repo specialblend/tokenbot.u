@@ -12,6 +12,11 @@ structural type Stats = {
     wealth: Nat,
 }
 
+structural type Item = {
+    token: Text,
+    qty: Nat,
+}
+
 structural type Fx = 
     Curse Int 
     | Greed Int 
