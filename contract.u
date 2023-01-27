@@ -1,11 +1,11 @@
-structural type Scores = {
+unique type Scores = {
     base: Nat,
     bonus: Nat,
     penalty: Nat,
     total: Nat,
 }
 
-structural type Stats = {
+unique type Stats = {
     curse: Nat,
     greed: Nat,
     luck: Nat,
