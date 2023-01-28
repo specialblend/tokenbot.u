@@ -4,6 +4,7 @@ a ->> b = b a -- preference over |>
 
 push a b = a List.++ b
 forceNat i = fromInt i ~ 0
+fold = List.foldLeft
 
 -- contract
 structural type Item = {
@@ -99,10 +100,9 @@ init_scores = Scores 0 0 0 0
 init_stats = Stats 0 0 0 0
 
 calc.points items = 
-    use List
     value item = tokens.points (item ->> token) * (item ->> qty ->> toInt)
     stack total item = total + (item ->> value)
-    forceNat (foldLeft stack +0 items)
+    forceNat (fold stack +0 items)
 
 stackStat qty amt stat = forceNat (toInt stat + amt * toInt qty)
 
@@ -115,15 +115,14 @@ stackFx qty stats =
         Wealth amt -> stats ->> wealth.modify (stack amt)
 
 calc.stats items = 
-    use List
     stackItem stats item =
         stack = stackFx (item ->> qty)
         fx = tokens.fx (item ->> token)
-        foldLeft stack init_stats fx
-    foldLeft stackItem init_stats items
+        fold stack init_stats fx
+    fold stackItem init_stats items
 
 -- collector
--- collectTokens rules txn =
+collectTokens rules txn = fold (res -> rule -> rule txn res) [] rules
 
 -- date rules
 use LocalDateTime
