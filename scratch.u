@@ -1,9 +1,9 @@
 -- sugar
-opt ~ x = Optional.getOrElse x opt -- because `?` is reserved :'(
-a ->> b = b a -- because `|>` is ugly and `->` is reserved :'(
+opt ~ x = Optional.getOrElse x opt
+a ->> b = b a -- preference over |>
 
-push = a -> b -> a List.++ b
-forceNat = i -> i ->> fromInt ~ 0
+push a b = a List.++ b
+forceNat i = fromInt i ~ 0
 
 -- contract
 structural type Item = {
@@ -61,11 +61,11 @@ unique type Stats = {
 }
 
 -- player
-pOffset = player -> player ->> profile ->> tz_offset ~ +0
-pTime = txn -> player -> addDuration (txn ->> timestamp) (player ->> pOffset ->> seconds)
+pOffset player = player ->> profile ->> tz_offset ~ +0
+pTime txn player = addDuration (txn ->> timestamp) (player ->> pOffset ->> seconds)
 
 -- txn
-players = txn -> (txn ->> sender) +: (txn ->> recipients)
+players txn = txn ->> sender +: (txn ->> recipients)
 
 -- tokens
 tokens.points = cases
@@ -98,15 +98,15 @@ tokens.fx = cases
 init_scores = Scores 0 0 0 0
 init_stats = Stats 0 0 0 0
 
-calc.points = 
+calc.points items = 
     use List
-    value = item -> tokens.points (item ->> token) * (item ->> qty ->> toInt)
-    stack = total -> item -> total + (item ->> value)
-    items -> forceNat (foldLeft stack +0 items)
+    value item = tokens.points (item ->> token) * (item ->> qty ->> toInt)
+    stack total item = total + (item ->> value)
+    forceNat (foldLeft stack +0 items)
 
-stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
+stackStat qty amt stat = forceNat (toInt stat + amt * toInt qty)
 
-stackFx = qty -> stats -> fx -> let
+stackFx qty stats fx =
     stack = stackStat qty
     match fx with
     Curse amt -> stats ->> curse.modify (stack amt)
@@ -114,34 +114,38 @@ stackFx = qty -> stats -> fx -> let
     Luck amt -> stats ->> luck.modify (stack amt)
     Wealth amt -> stats ->> wealth.modify (stack amt)
 
-calc.stats = let
+calc.stats items = 
     use List
-    stackItem = stats -> item -> let 
+    stackItem stats item =
         stack = stackFx (item ->> qty)
         fx = tokens.fx (item ->> token)
         foldLeft stack init_stats fx
-    items -> foldLeft stackItem init_stats items
+    foldLeft stackItem init_stats items
+
+-- collector
+-- collectTokens rules txn =
 
 -- date rules
 use LocalDateTime
 
-isFriday = now -> (now ->> date ->> day) == 5
+isFriday now = (now ->> date ->> day) == 5
 
-isBetweenHours = start -> end -> now -> let
-    (now ->> time ->> hour >= start) && (now ->> time ->> hour < end)
+isBetweenHours start end now =
+    h = now ->> time ->> hour
+    (h >= start) && (h < end)
 
 -- txn rules
-baseTokens = txn -> push (
+baseTokens txn = push (
     txn ->> recipients ->> map (player -> Give player "👍" +1 "thanks")
     )
 
-morningBonus = txn -> push (
+morningBonus txn = push (
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
         ->> map (player -> Give player "☕" +1 "morning bonus")
     )
 
-fridayBonus = txn -> push (
+fridayBonus txn = push (
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isFriday)
         ->> map (player -> Give player "🍻" +1 "friday bonus")
@@ -152,3 +156,22 @@ rules = [
     morningBonus,
     fridayBonus,
 ]
+
+-- tests
+test> forceNat.tests._3when3 = check (forceNat +3 == 3)
+test> forceNat.tests._1when1 = check (forceNat +1 == 1)
+test> forceNat.tests._0when0 = check (forceNat +0 == 0)
+test> forceNat.tests._0when_1 = check (forceNat -1 == 0)
+test> forceNat.tests._0when_3 = check (forceNat -3 == 0)
+
+test> calc.points.tests._0whenEmpty = check (calc.points [] == 0)
+test> calc.points.tests._0whenUnknown = check (calc.points [Item "🏈" 1] == 0)
+test> calc.points.tests._1when1Like = check (calc.points [Item "👍" 1] == 1)
+test> calc.points.tests._3when3Likes = check (calc.points [Item "👍" 3] == 3)
+test> calc.points.tests.mixed2 = check (calc.points [Item "👍" 1, Item "🍕" 2] == 7)
+test> calc.points.tests.mixed3 = check (calc.points [Item "👍" 1, Item "🍕" 2, Item "💀" 3] == 4)
+
+test> calc.stats.tests.initCurseWhenEmpty = check ((calc.stats []) ->> curse == (init_stats ->> curse))
+test> calc.stats.tests.initGreedWhenEmpty = check ((calc.stats []) ->> greed == (init_stats ->> greed))
+test> calc.stats.tests.initLuckWhenEmpty = check ((calc.stats []) ->> luck == (init_stats ->> luck))
+test> calc.stats.tests.initWealthWhenEmpty = check ((calc.stats []) ->> wealth == (init_stats ->> wealth))
