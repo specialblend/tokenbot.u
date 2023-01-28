@@ -119,7 +119,7 @@ baseTokens = txn -> append (
 morningBonus = txn -> append (
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
-        ->> map (player -> Give player "🍻" +1 "friday bonus")
+        ->> map (player -> Give player "☕" +1 "morning bonus")
     )
 
 fridayBonus = txn -> append (
