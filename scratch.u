@@ -18,8 +18,8 @@ structural type Fx
     | Wealth Int
 
 structural type CakeDay = {
-    month: Nat,
-    day: Nat,
+    cake_month: Nat,
+    cake_day: Nat,
 }
 
 structural type Profile = {
@@ -46,14 +46,14 @@ structural type TxnHeader = {
     recipients: [Player]
 } 
 
-structural type Scores = {
+unique type Scores = {
     base: Nat,
     bonus: Nat,
     penalty: Nat,
     total: Nat,
 }
 
-structural type Stats = {
+unique type Stats = {
     curse: Nat,
     greed: Nat,
     luck: Nat,
@@ -106,13 +106,16 @@ calc.points =
 
 stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
+stackFx : Nat -> Stats -> Fx -> Stats
 stackFx = qty -> stats -> fx -> let
     stack = stackStat qty
     stats ->> match fx with
         Curse amt -> curse.modify (stack amt)
         Greed amt -> greed.modify (stack amt)
+        -- type check passes if below lines are commented out
         Luck amt -> luck.modify (stack amt)
         Wealth amt -> wealth.modify (stack amt)
+        -- type check passes if above lines are commented out
         _ -> id
 
 calc.stats = let
