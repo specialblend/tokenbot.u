@@ -106,9 +106,10 @@ calc.points =
 
 stackStat : Nat -> Int -> Nat -> Nat
 stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
-
+ 
 stackFx : Nat -> Stats -> Fx -> Stats
 stackFx = qty -> stats -> fx -> let
+    stack : Int ->{} Nat ->{} Nat
     stack = stackStat qty
     stats ->> match fx with
         Curse amt -> curse.modify (stack amt)
