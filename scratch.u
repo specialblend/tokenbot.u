@@ -108,17 +108,20 @@ stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
 stackFx = qty -> stats -> fx -> let
     stack = stackStat qty
-    match fx with
-        Curse amt -> stats ->> curse.modify (stack amt)
-        Greed amt -> stats ->> greed.modify (stack amt)
-        Luck amt -> stats ->> luck.modify (stack amt)
-        Wealth amt -> stats ->> wealth.modify (stack amt)
-        _ -> stats
+    stats ->> match fx with
+        Curse amt -> curse.modify (stack amt)
+        Greed amt -> greed.modify (stack amt)
+        Luck amt -> luck.modify (stack amt)
+        Wealth amt -> wealth.modify (stack amt)
+        _ -> id
 
-calc.stats items =
-    use List foldLeft
-    stackItem stats item = foldLeft (stackFx (item ->> qty)) init_stats (tokens.fx (item ->> token))
-    foldLeft stackItem init_stats items
+calc.stats = let
+    use List
+    stackItem = stats -> item -> let 
+        stack = stackFx (item ->> qty)
+        fx = tokens.fx (item ->> token)
+        foldLeft stack init_stats fx
+    items -> foldLeft stackItem init_stats items
 
 -- date rules
 use LocalDateTime
