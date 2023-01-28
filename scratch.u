@@ -108,14 +108,11 @@ stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
 stackFx = qty -> stats -> fx -> let
     stack = stackStat qty
-    stats ->> match fx with
-        Curse amt -> curse.modify (stack amt)
-        Greed amt -> greed.modify (stack amt)
-        -- type check passes if below lines are commented out
-        Luck amt -> luck.modify (stack amt)
-        Wealth amt -> wealth.modify (stack amt)
-        -- type check passes if above lines are commented out
-        _ -> id
+    match fx with
+    Curse amt -> stats ->> curse.modify (stack amt)
+    Greed amt -> stats ->> greed.modify (stack amt)
+    Luck amt -> stats ->> luck.modify (stack amt)
+    Wealth amt -> stats ->> wealth.modify (stack amt)
 
 calc.stats = let
     use List
