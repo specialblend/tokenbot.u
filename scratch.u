@@ -141,13 +141,13 @@ baseTokens txn =
 
 morningBonus txn =
     txn ->> players
-        ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
+        ->> filter (pTime txn >> isBetweenHours 0 9)
         ->> map (player -> Give player "☕" +1 "morning bonus")
         ->> push
 
 fridayBonus txn =
     txn ->> players
-        ->> filter (player -> player ->> pTime txn ->> isFriday)
+        ->> filter (pTime txn >> isFriday)
         ->> map (player -> Give player "🍻" +1 "friday bonus")
         ->> push
 
