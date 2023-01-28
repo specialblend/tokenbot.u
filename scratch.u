@@ -102,7 +102,7 @@ calc.points =
     use List
     value = item -> tokens.points (item ->> token) * (item ->> qty ->> toInt)
     stack = total -> item -> total + (item ->> value)
-    items -> forceNat (foldLeft stack +0 [])
+    items -> forceNat (foldLeft stack +0 items)
 
 stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
