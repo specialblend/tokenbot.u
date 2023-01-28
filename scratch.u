@@ -106,6 +106,7 @@ calc.points =
 
 stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
+stackFx : Nat -> Stats -> Fx -> Stats
 stackFx = qty -> stats -> fx -> let
     stack = stackStat qty
     stats ->> match fx with
