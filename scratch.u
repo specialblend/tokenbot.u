@@ -104,6 +104,7 @@ calc.points =
     stack = total -> item -> total + (item ->> value)
     items -> forceNat (foldLeft stack +0 [])
 
+stackStat : Nat -> Int -> Nat -> Nat
 stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
 
 stackFx : Nat -> Stats -> Fx -> Stats
@@ -120,6 +121,7 @@ stackFx = qty -> stats -> fx -> let
 
 calc.stats = let
     use List
+    stackItem : Stats -> Item -> Stats
     stackItem = stats -> item -> let 
         stack = stackFx (item ->> qty)
         fx = tokens.fx (item ->> token)
