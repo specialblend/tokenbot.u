@@ -122,9 +122,10 @@ calc.stats items =
 
 -- date rules
 use LocalDateTime
+
 isFriday now = (now ->> date ->> day) == 5
 
-isBetweenHours start end now = 
+isBetweenHours  = start -> end -> now -> let
     (now ->> time ->> hour >= start) && (now ->> time ->> hour < end)
 
 -- txn rules
