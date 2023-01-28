@@ -106,13 +106,13 @@ calc.points items =
 
 stackStat qty amt stat = forceNat (toInt stat + amt * toInt qty)
 
-stackFx qty stats fx =
+stackFx qty stats =
     stack = stackStat qty
-    match fx with
-    Curse amt -> stats ->> curse.modify (stack amt)
-    Greed amt -> stats ->> greed.modify (stack amt)
-    Luck amt -> stats ->> luck.modify (stack amt)
-    Wealth amt -> stats ->> wealth.modify (stack amt)
+    cases
+        Curse amt -> stats ->> curse.modify (stack amt)
+        Greed amt -> stats ->> greed.modify (stack amt)
+        Luck amt -> stats ->> luck.modify (stack amt)
+        Wealth amt -> stats ->> wealth.modify (stack amt)
 
 calc.stats items = 
     use List
@@ -135,21 +135,22 @@ isBetweenHours start end now =
     (h >= start) && (h < end)
 
 -- txn rules
-baseTokens txn = push (
-    txn ->> recipients ->> map (player -> Give player "👍" +1 "thanks")
-    )
+baseTokens txn =
+    txn ->> recipients
+        ->> map (player -> Give player "👍" +1 "thanks")
+        ->> push
 
-morningBonus txn = push (
+morningBonus txn =
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
         ->> map (player -> Give player "☕" +1 "morning bonus")
-    )
+        ->> push
 
-fridayBonus txn = push (
+fridayBonus txn =
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isFriday)
         ->> map (player -> Give player "🍻" +1 "friday bonus")
-    )
+        ->> push
 
 rules = [
     baseTokens,
