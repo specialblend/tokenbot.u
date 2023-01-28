@@ -130,5 +130,6 @@ fridayBonus = txn -> append (
 
 rules = [
     baseTokens,
+    morningBonus,
     fridayBonus,
 ]
