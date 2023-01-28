@@ -1,0 +1,134 @@
+-- sugar
+opt ~ x = 
+    use Optional
+    getOrElse x opt
+
+a ->> b = b a
+
+append =
+    use List
+    a -> b -> a++b
+
+-- contract
+structural type Item = {
+    token: Text,
+    qty: Nat,
+}
+
+structural type Fx
+    = Curse Int 
+    | Greed Int 
+    | Luck Int 
+    | Wealth Int
+
+structural type CakeDay = {
+    month: Nat,
+    day: Nat,
+}
+
+structural type Profile = {
+    id: Text,
+    name: Text,
+    tz_offset: Optional Int,
+    cake_day: Optional CakeDay,
+}
+
+structural type Player = {
+    profile: Profile,
+    items: [Item],
+    stats: Stats,
+    scores: Scores,
+}
+
+structural type MicroTxn
+    = Give Player Text Int Text
+    | Steal Player [Text] Int Text
+
+structural type TxnHeader = {
+    timestamp: LocalDateTime,
+    sender: Player,
+    recipients: [Player]
+} 
+
+structural type Scores = {
+    base: Nat,
+    bonus: Nat,
+    penalty: Nat,
+    total: Nat,
+}
+
+structural type Stats = {
+    curse: Nat,
+    greed: Nat,
+    luck: Nat,
+    wealth: Nat,
+}
+
+-- player
+pOffset = player -> player ->> profile ->> tz_offset ~ +0
+pTime =
+    use Duration
+    txn -> player -> 
+        addDuration (txn ->> timestamp) (player ->> pOffset ->> seconds)
+
+-- txn
+players = txn -> (txn ->> sender) +: (txn ->> recipients)
+
+-- tokens
+tokens.points = cases
+    "👍" -> +1
+    "☕" -> +1
+    "🍻" -> +2
+    "🍕" -> +3
+    "🔥" -> +5
+    "🍉" -> +8
+    "🍰" -> +13
+    "👑" -> +1
+    "🍀" -> +1
+    "🎭" -> +0
+    "💀" -> -1
+    "🎃" -> +1
+    "🎄" -> +1
+    _ -> +0
+
+tokens.fx = cases
+    "👑" -> [Wealth +25]
+    "🍀" -> [Luck +25]
+    "🎭" -> [Greed +25]
+    "💀" -> [Curse +25]
+    "❤️" -> [Curse -50]
+    "🎃" -> [Curse +5, Greed +5]
+    "🎄" -> [Greed -25]
+    _ -> []
+
+-- date rules
+isFriday =
+    use LocalDateTime
+    now -> (now ->> date ->> day) == 5
+
+isBetweenHours start end now =
+    use LocalDateTime
+    _hour = now ->> time ->> hour
+    (_hour >= start) && (_hour < end)
+
+-- txn rules
+baseTokens = txn -> append (
+    txn ->> recipients ->> map (player -> Give player "👍" +1 "thanks")
+    )
+
+morningBonus = txn -> append (
+    txn ->> players
+        ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
+        ->> map (player -> Give player "🍻" +1 "friday bonus")
+    )
+
+fridayBonus = txn -> append (
+    txn ->> players
+        ->> filter (player -> player ->> pTime txn ->> isFriday)
+        ->> map (player -> Give player "🍻" +1 "friday bonus")
+    )
+
+rules = [
+    baseTokens,
+    fridayBonus,
+]
