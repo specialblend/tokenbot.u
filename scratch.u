@@ -1,13 +1,9 @@
 -- sugar
-opt ~ x = 
-    use Optional
-    getOrElse x opt
+opt ~ x = Optional.getOrElse x opt -- because `?` is reserved :'(
+a ->> b = b a -- because `|>` is ugly and `->` is reserved :'(
 
-a ->> b = b a
-
-append =
-    use List
-    a -> b -> a++b
+push = a -> b -> a List.++ b
+forceNat = i -> i ->> fromInt ~ 0
 
 -- contract
 structural type Item = {
@@ -66,10 +62,7 @@ structural type Stats = {
 
 -- player
 pOffset = player -> player ->> profile ->> tz_offset ~ +0
-pTime =
-    use Duration
-    txn -> player -> 
-        addDuration (txn ->> timestamp) (player ->> pOffset ->> seconds)
+pTime = txn -> player -> addDuration (txn ->> timestamp) (player ->> pOffset ->> seconds)
 
 -- txn
 players = txn -> (txn ->> sender) +: (txn ->> recipients)
@@ -101,28 +94,51 @@ tokens.fx = cases
     "🎄" -> [Greed -25]
     _ -> []
 
--- date rules
-isFriday =
-    use LocalDateTime
-    now -> (now ->> date ->> day) == 5
+-- calculator
+init_scores = Scores 0 0 0 0
+init_stats = Stats 0 0 0 0
 
-isBetweenHours start end now =
-    use LocalDateTime
-    _hour = now ->> time ->> hour
-    (_hour >= start) && (_hour < end)
+calc.points = 
+    use List
+    value = item -> tokens.points (item ->> token) * (item ->> qty ->> toInt)
+    stack = total -> item -> total + (item ->> value)
+    items -> forceNat (foldLeft stack +0 [])
+
+stackStat = qty -> amt -> stat -> forceNat (toInt stat + amt * toInt qty)
+
+stackFx = qty -> stats -> fx -> let
+    stack = stackStat qty
+    match fx with
+        Curse amt -> stats ->> curse.modify (stack amt)
+        Greed amt -> stats ->> greed.modify (stack amt)
+        Luck amt -> stats ->> luck.modify (stack amt)
+        Wealth amt -> stats ->> wealth.modify (stack amt)
+        _ -> stats
+
+calc.stats items =
+    use List foldLeft
+    stackItem stats item = foldLeft (stackFx (item ->> qty)) init_stats (tokens.fx (item ->> token))
+    foldLeft stackItem init_stats items
+
+-- date rules
+use LocalDateTime
+isFriday now = (now ->> date ->> day) == 5
+
+isBetweenHours start end now = 
+    (now ->> time ->> hour >= start) && (now ->> time ->> hour < end)
 
 -- txn rules
-baseTokens = txn -> append (
+baseTokens = txn -> push (
     txn ->> recipients ->> map (player -> Give player "👍" +1 "thanks")
     )
 
-morningBonus = txn -> append (
+morningBonus = txn -> push (
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isBetweenHours 0 9)
         ->> map (player -> Give player "☕" +1 "morning bonus")
     )
 
-fridayBonus = txn -> append (
+fridayBonus = txn -> push (
     txn ->> players
         ->> filter (player -> player ->> pTime txn ->> isFriday)
         ->> map (player -> Give player "🍻" +1 "friday bonus")
